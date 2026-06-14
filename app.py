@@ -6,7 +6,7 @@ from langchain_community.vectorstores import FAISS
 import tempfile, os
 
 st.set_page_config(page_title="Business Document Analyst", page_icon="📄")
-st.title("📄 RAG (Retrieval Augmented Generation) Business Document Analyst")
+st.title("📄 RAG (Retrieval Augmented Generation) based Business Document Analyst")
 st.caption("Upload any business PDF and ask questions about it")
 
 api_key = st.text_input("Paste your Gemini API key here", type="password")
