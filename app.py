@@ -56,7 +56,7 @@ if st.button("Get Answer") and uploaded_file and question and api_key:
             st.caption(f"📄 Answer sourced from pages: {', '.join(set(page_numbers))}")
 
             # Ask Gemini
-            llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash", google_api_key=api_key)
+            llm = ChatGoogleGenerativeAI(model="gemini-2.0-flash", google_api_key=api_key)
             prompt = f"""You are a senior business analyst. Use ONLY the document context below to answer the question.
 If the answer is not in the context, say "I couldn't find that in the document."
 
