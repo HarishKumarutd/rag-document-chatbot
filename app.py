@@ -43,8 +43,8 @@ if st.button("Get Answer") and uploaded_file and question and api_key:
         try:
             db = FAISS.from_documents(chunks, embeddings)
         except Exception as e:
-        st.error(f"Embedding error: {str(e)}")
-        st.stop()
+            st.error(f"Embedding error: {str(e)}")
+            st.stop()
         
         # Find the most relevant chunks for the question
         relevant_docs = db.similarity_search(question, k=4)
