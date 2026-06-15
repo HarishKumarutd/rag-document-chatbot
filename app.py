@@ -1,5 +1,5 @@
 import streamlit as st
-from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_groq import ChatGroq
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 import tempfile, os
@@ -8,7 +8,7 @@ st.set_page_config(page_title="Business Document Analyst", page_icon="📄")
 st.title("📄 Business Document Analyst")
 st.caption("Upload any business PDF and ask questions about it")
 
-api_key = st.text_input("Paste your Gemini API key here", type="password")
+api_key = st.text_input("Paste your Groq API key here", type="password")
 uploaded_file = st.file_uploader("Upload a PDF (annual report, strategy doc, etc)", type="pdf")
 question = st.text_input("Ask a question about the document")
 
@@ -38,7 +38,7 @@ if st.button("Get Answer") and uploaded_file and question and api_key:
             splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
             chunks = splitter.split_documents(docs)
 
-            # Find relevant chunks using simple keyword matching
+            # Find relevant chunks using keyword matching
             question_words = set(question.lower().split())
             scored_chunks = []
             for chunk in chunks:
@@ -46,17 +46,22 @@ if st.button("Get Answer") and uploaded_file and question and api_key:
                 score = len(question_words & chunk_words)
                 scored_chunks.append((score, chunk))
 
-            # Sort by relevance score and take top 6
+            # Sort by relevance and take top 5
             scored_chunks.sort(key=lambda x: x[0], reverse=True)
-            top_chunks = [c[1] for c in scored_chunks[:6]]
+            top_chunks = [c[1] for c in scored_chunks[:5]]
             context = "\n\n".join([chunk.page_content for chunk in top_chunks])
 
             # Show source pages
             page_numbers = [str(chunk.metadata.get('page', 0) + 1) for chunk in top_chunks]
             st.caption(f"📄 Answer sourced from pages: {', '.join(set(page_numbers))}")
 
-            # Ask Gemini
-            llm = ChatGoogleGenerativeAI(model="gemini-2.0-flash", google_api_key=api_key, transport="rest")
+            # Ask Groq (free and fast!)
+            llm = ChatGroq(
+                model="llama-3.3-70b-versatile",
+                api_key=api_key,
+                temperature=0.3
+            )
+
             prompt = f"""You are a senior business analyst. Use ONLY the document context below to answer the question.
 If the answer is not in the context, say "I couldn't find that in the document."
 
