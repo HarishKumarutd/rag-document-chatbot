@@ -1,6 +1,6 @@
 streamlit
 langchain
-langchain-google-genai
+langchain-groq
 langchain-community
 langchain-text-splitters
 pypdf
