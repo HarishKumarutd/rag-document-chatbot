@@ -40,8 +40,12 @@ if st.button("Get Answer") and uploaded_file and question and api_key:
 
         # Create embeddings and search index
         embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-004", google_api_key=api_key)
-        db = FAISS.from_documents(chunks, embeddings)
-
+        try:
+            db = FAISS.from_documents(chunks, embeddings)
+        except Exception as e:
+        st.error(f"Embedding error: {str(e)}")
+        st.stop()
+        
         # Find the most relevant chunks for the question
         relevant_docs = db.similarity_search(question, k=4)
         context = "\n\n".join([doc.page_content for doc in relevant_docs])
