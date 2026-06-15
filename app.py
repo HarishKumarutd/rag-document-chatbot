@@ -1,12 +1,11 @@
 import streamlit as st
-from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_community.vectorstores import FAISS
 import tempfile, os
 
 st.set_page_config(page_title="Business Document Analyst", page_icon="📄")
-st.title("📄 RAG (Retrieval Augmented Generation) based Business Document Analyst")
+st.title("📄 Business Document Analyst")
 st.caption("Upload any business PDF and ask questions about it")
 
 api_key = st.text_input("Paste your Gemini API key here", type="password")
@@ -27,37 +26,39 @@ with col3:
 
 if st.button("Get Answer") and uploaded_file and question and api_key:
     with st.spinner("Reading document and thinking..."):
-        # Save uploaded file temporarily
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as f:
-            f.write(uploaded_file.read())
-            tmp_path = f.name
-
-        # Load and split the PDF
-        loader = PyPDFLoader(tmp_path)
-        docs = loader.load()
-        splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
-        chunks = splitter.split_documents(docs)
-
-        # Create embeddings and search index
-        embeddings = GoogleGenerativeAIEmbeddings(model="models/text-embedding-004", google_api_key=api_key)
         try:
-            db = FAISS.from_documents(chunks, embeddings)
-        except Exception as e:
-            st.error(f"Embedding error: {str(e)}")
-            st.stop()
-        
-        # Find the most relevant chunks for the question
-        relevant_docs = db.similarity_search(question, k=4)
-        context = "\n\n".join([doc.page_content for doc in relevant_docs])
+            # Save uploaded file temporarily
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as f:
+                f.write(uploaded_file.read())
+                tmp_path = f.name
 
-        # Show source pages
-        page_numbers = [str(doc.metadata.get('page', 'unknown') + 1) for doc in relevant_docs]
-        st.caption(f"📄 Answer sourced from pages: {', '.join(set(page_numbers))}")
+            # Load and split the PDF
+            loader = PyPDFLoader(tmp_path)
+            docs = loader.load()
+            splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
+            chunks = splitter.split_documents(docs)
 
-        # Ask Gemini with the context
-        llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash", google_api_key=api_key)
-        prompt = f"""You are a senior business analyst. Use ONLY the document context below to answer the question.
-        If the answer is not in the context, say "I couldn't find that in the document."
+            # Find relevant chunks using simple keyword matching
+            question_words = set(question.lower().split())
+            scored_chunks = []
+            for chunk in chunks:
+                chunk_words = set(chunk.page_content.lower().split())
+                score = len(question_words & chunk_words)
+                scored_chunks.append((score, chunk))
+
+            # Sort by relevance score and take top 6
+            scored_chunks.sort(key=lambda x: x[0], reverse=True)
+            top_chunks = [c[1] for c in scored_chunks[:6]]
+            context = "\n\n".join([chunk.page_content for chunk in top_chunks])
+
+            # Show source pages
+            page_numbers = [str(chunk.metadata.get('page', 0) + 1) for chunk in top_chunks]
+            st.caption(f"📄 Answer sourced from pages: {', '.join(set(page_numbers))}")
+
+            # Ask Gemini
+            llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash", google_api_key=api_key)
+            prompt = f"""You are a senior business analyst. Use ONLY the document context below to answer the question.
+If the answer is not in the context, say "I couldn't find that in the document."
 
 Context:
 {context}
@@ -65,8 +66,11 @@ Context:
 Question: {question}
 
 Answer in a structured, professional way using bullet points where appropriate:"""
-        
-        response = llm.invoke(prompt)
-        st.success(response.content)
-        st.download_button("📥 Download this answer", response.content, file_name="analysis.txt")
-        os.unlink(tmp_path)
+
+            response = llm.invoke(prompt)
+            st.success(response.content)
+            st.download_button("📥 Download this answer", response.content, file_name="analysis.txt")
+            os.unlink(tmp_path)
+
+        except Exception as e:
+            st.error(f"Error: {str(e)}")
