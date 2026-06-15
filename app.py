@@ -39,7 +39,7 @@ if st.button("Get Answer") and uploaded_file and question and api_key:
         chunks = splitter.split_documents(docs)
 
         # Create embeddings and search index
-        embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-004", google_api_key=api_key)
+        embeddings = GoogleGenerativeAIEmbeddings(model="models/text-embedding-004", google_api_key=api_key)
         try:
             db = FAISS.from_documents(chunks, embeddings)
         except Exception as e:
