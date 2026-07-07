@@ -2,7 +2,7 @@ import streamlit as st
 from langchain_groq import ChatGroq
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-import tempfile, os
+import tempfile, os 
 
 st.set_page_config(page_title="Business Document Analyst", page_icon="📄")
 st.title("📄 Business Document Analyst")
